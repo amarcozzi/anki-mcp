@@ -6,6 +6,9 @@
    Name: `Anki`. URL: `https://anki-mcp-1002421927069.us-central1.run.app/mcp`.
    Click Connect, enter `OWNER_PASSWORD` from `.env` on the consent page. The
    token lasts 24 h and refreshes itself for 180 days, so this is a one-off.
+   On the connector's page set Tool permissions → Other tools to **Always
+   allow**; the default "Needs approval" prompts on every call, which stalls
+   each card. The server only touches your own collection.
 2. **Create a project** called `Anki reviews` and paste the instructions below
    into "Project instructions". Every chat started inside the project gets them.
 3. **Enable the tool in a chat**: in the chat's tools menu (the + or sliders
