@@ -1,0 +1,71 @@
+// Reverse-engineered schema of the private AnkiWeb study API, decoded from the
+// study page's JS bundle on 2026-09-02. Field numbers matter; names are ours.
+// Regenerate with: go generate ./internal/ankiweb/...
+syntax = "proto3";
+package ankiweb;
+option go_package = "github.com/amarcozzi/anki-mcp/internal/ankiweb/ankiwebpb";
+
+// POST https://ankiweb.net/svc/account/login
+message LoginRequest  { string username = 1; string password = 2; }
+message LoginResponse { LoginStatus status = 1; string token = 2; }
+enum LoginStatus { LOGIN_UNKNOWN = 0; LOGIN_AUTHENTICATED = 1; LOGIN_INVALID_USER = 2; LOGIN_INVALID_PASS = 3; }
+
+// POST https://ankiweb.net/svc/decks/deck-list-info
+message DeckListRequest  { optional int32 minutes_west_of_utc = 1; }
+message DeckListResponse {
+  DeckNode top_node = 1;
+  int64 current_deck_id = 2;
+  uint32 collection_size_bytes = 3;
+  uint64 media_size_bytes = 4;
+}
+message DeckNode {
+  int64 deck_id = 1;
+  string name = 2;
+  repeated DeckNode children = 3;
+  uint32 level = 4;
+  bool collapsed = 5;
+  uint32 review_count = 6;
+  uint32 learn_count = 7;
+  uint32 new_count = 8;
+  uint32 total_in_deck = 13;
+  uint32 total_including_children = 14;
+  bool filtered = 16;
+}
+
+// POST https://ankiweb.net/svc/decks/select-deck
+message SelectDeckRequest  { int64 deck_id = 1; }
+message SelectDeckResponse {}
+
+// POST https://ankiuser.net/svc/study/study-cards
+// An empty request returns the next cards. With `answer` set it grades that card
+// first. `next_card_id` tells the server which card the client is about to show.
+message StudyCardsRequest  { optional CardAnswer answer = 1; optional int64 next_card_id = 2; }
+message StudyCardsResponse {
+  uint32 sched_ver = 1;
+  repeated Card cards = 2;
+  uint32 new_count = 3;
+  uint32 learn_count = 4;
+  uint32 review_count = 5;
+}
+message Card {
+  int64 card_id = 1;
+  string question = 2;          // rendered HTML
+  string answer = 3;            // rendered HTML (includes the question above <hr id=answer>)
+  uint32 count_index = 4;       // 0 new, 1 learn, 2 review
+  repeated string button_labels = 5;
+  int64 note_id = 6;
+  uint32 template_index = 7;
+  NextStates next_states = 8;
+}
+// SchedulingState messages are opaque to us: we only echo them back, so they
+// are declared as bytes. A length-delimited field read as bytes is the exact
+// wire encoding of the submessage.
+message NextStates { bytes current = 1; bytes again = 2; bytes hard = 3; bytes good = 4; bytes easy = 5; }
+message CardAnswer {
+  int64 card_id = 1;
+  uint32 answer_button = 2;     // 1 Again, 2 Hard, 3 Good, 4 Easy
+  uint32 time_taken_millis = 3;
+  int64 answered_at_millis = 4;
+  bytes current_state = 5;
+  bytes next_state = 6;
+}
