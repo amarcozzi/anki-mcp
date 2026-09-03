@@ -154,14 +154,21 @@ class AnkiSession:
         if self.media is not None and self.auth is not None:
             self.media.set_auth(self.auth.hkey, self.auth.endpoint or None)
 
-    def _full_download(self, server_media_usn: int) -> None:
-        """Replace the local collection with AnkiWeb's. Never the other direction."""
+    def _full_download(self) -> None:
+        """Replace the local collection with AnkiWeb's. Never the other direction.
+
+        server_usn must stay None: giving the backend the server's media USN makes
+        it start a background media sync of the whole media folder (1.7 GB for this
+        collection), which on Cloud Run lands in the in-memory /tmp and kills the
+        instance. Card images are fetched per file by MediaStore instead.
+        """
         assert self.col is not None
         auth = self._login()
         t0 = time.time()
         self.col.close_for_full_sync()
-        self.col.full_upload_or_download(auth=auth, server_usn=server_media_usn, upload=False)
+        self.col.full_upload_or_download(auth=auth, server_usn=None, upload=False)
         self.col.reopen(after_full_sync=True)
+        self.col.abort_media_sync()  # belt and braces: never let a media sync run here
         self.pending = 0
         log.info("full download complete in %.1fs (%d cards)", time.time() - t0, self.col.card_count())
 
@@ -185,7 +192,7 @@ class AnkiSession:
                     SyncCollectionResponse.ChangesRequired.Name(out.required),
                     lost,
                 )
-                self._full_download(out.server_media_usn)
+                self._full_download()
                 self.synced_once = True
                 return f"full download (AnkiWeb required it; {lost} unsynced change(s) discarded)"
             self.pending = 0
