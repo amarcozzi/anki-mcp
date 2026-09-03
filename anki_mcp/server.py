@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import resource
+import sys
 import threading
 from contextlib import asynccontextmanager
 
@@ -92,6 +94,7 @@ def build(settings: Settings) -> tuple[FastMCP, AnkiSession]:
             data = fetched.get(n)
             if data is not None:
                 blocks.append(Image(data=data, format="jpeg").to_image_content())
+        log.info("rss %d MB after tool call", _rss_mb())
         return ToolResult(content=blocks)
 
     def present(card: CardView | None, prefix: str = "") -> ToolResult:
@@ -215,6 +218,16 @@ def build(settings: Settings) -> tuple[FastMCP, AnkiSession]:
         return "Sync: " + session.sync("tool")
 
     return mcp, session
+
+
+def _rss_mb() -> int:
+    """Current resident set size in MB (Linux reads /proc; elsewhere the peak from getrusage)."""
+    try:
+        with open("/proc/self/statm") as f:
+            return int(f.read().split()[1]) * resource.getpagesize() // (1024 * 1024)
+    except OSError:
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return peak // (1024 * 1024) if sys.platform == "darwin" else peak // 1024
 
 
 def _warm(session: AnkiSession) -> None:
