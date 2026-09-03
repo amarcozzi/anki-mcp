@@ -56,7 +56,7 @@ echo "build permissions: ok"
 BASE="${BASE_URL:-http://placeholder}"
 gcloud run deploy "$SERVICE" --source . --project "$PROJECT" --region "$REGION" --quiet \
   --allow-unauthenticated --min-instances 0 --max-instances 1 --concurrency 4 \
-  --memory 1Gi --cpu 1 --timeout 300 --no-cpu-throttling \
+  --memory 512Mi --cpu 1 --timeout 300 --no-cpu-throttling \
   --set-env-vars "BASE_URL=$BASE,COLLECTION_DIR=/tmp/anki-mcp" \
   --set-secrets "ANKIWEB_USERNAME=ankiweb-username:latest,ANKIWEB_PASSWORD=ankiweb-password:latest,OWNER_PASSWORD=owner-password:latest,JWT_SIGNING_KEY=jwt-signing-key:latest"
 
